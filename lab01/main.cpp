@@ -23,6 +23,10 @@ Vec3b rgbToHsl(Vec3b rgb) {
         }
             
         s = delta / (1 - abs(2 * l - 1));
+
+        if (h < 0) {
+            h += 360;
+        }
     }
    
     return Vec3b(h / 2, s * 255, l * 255);
