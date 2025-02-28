@@ -13,8 +13,7 @@ Vec3b rgbToHsl(Vec3b rgb) {
 
     if (delta != 0){
         if (r == chigh) {
-            float aux = (g - b) / delta;
-            h = 60 * fmod(delta, 6); 
+            h = 60 * fmod(((g - b) / delta), 6);
         }
         else if (g == chigh) {
            h = 60 * (((b - r) / delta) + 2);
@@ -22,15 +21,11 @@ Vec3b rgbToHsl(Vec3b rgb) {
         else {
             h = 60 * (((r - g) / delta) + 4);
         }
-        
-        if (h < 0) {
-            h += 360;
-        }
-    
+            
         s = delta / (1 - abs(2 * l - 1));
     }
    
-    return Vec3b(h / 2, s * 255, l * 255);
+    return Vec3b(h, s * 255, l * 255);
 }
 
 float hueToRgb(float p, float q, float t) {
@@ -54,7 +49,7 @@ float hueToRgb(float p, float q, float t) {
 }
 
 Vec3b hslToRgb(Vec3b hsl) {
-    float h = hsl[0] * 2 / 360.0f, s = hsl[1] / 255.0f, l = hsl[2] / 255.0f ;
+    float h = hsl[0] / 360.0f, s = hsl[1] / 255.0f, l = hsl[2] / 255.0f ;
     float r, g, b;
 
     if (s == 0) {
@@ -91,7 +86,7 @@ int main(int argc, char* argv[]) {
     for (int i = 0; i < img.rows; i++) {
         for (int j = 0; j < img.cols; j++) {
             Vec3b hsl = rgbToHsl(img.at<Vec3b>(i, j));
-            float novaLum = min(255, max(0, hsl[2] + luminosidade));
+            int novaLum = min(255, max(0, hsl[2] + luminosidade));
             imgHsl.at<Vec3b>(i, j) = Vec3b(hsl[0], hsl[1], novaLum); 
         }
     }
