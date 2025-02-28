@@ -9,6 +9,6 @@ find_package( OpenCV REQUIRED )
 include_directories(${OpenCV_INCLUDE_DIRS} )
 
 
-add_executable(Lab1 lab1.cpp)
+add_executable(Lab1 main.cpp)
 
 target_link_libraries(Lab1 ${OpenCV_LIBS} )
