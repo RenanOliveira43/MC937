@@ -25,7 +25,7 @@ Vec3b rgbToHsl(Vec3b rgb) {
         s = delta / (1 - abs(2 * l - 1));
     }
    
-    return Vec3b(h, s * 255, l * 255);
+    return Vec3b(h / 2, s * 255, l * 255);
 }
 
 float hueToRgb(float p, float q, float t) {
@@ -49,7 +49,7 @@ float hueToRgb(float p, float q, float t) {
 }
 
 Vec3b hslToRgb(Vec3b hsl) {
-    float h = hsl[0] / 360.0f, s = hsl[1] / 255.0f, l = hsl[2] / 255.0f ;
+    float h = hsl[0] * 2 / 360.0f, s = hsl[1] / 255.0f, l = hsl[2] / 255.0f ;
     float r, g, b;
 
     if (s == 0) {
