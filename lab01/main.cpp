@@ -9,7 +9,7 @@ Vec3b rgbToHsl(Vec3b rgb) {
     float chigh = max(max(r, g), b);
     float clow = min(min(r, g), b);
     float delta = chigh - clow;
-    float h = 0, s = 0, l = (chigh + clow) / 2;
+    float h = 0, s = 0, l = (chigh + clow) / 2.0f;
 
     if (delta != 0){
         if (r == chigh) {
@@ -32,41 +32,46 @@ Vec3b rgbToHsl(Vec3b rgb) {
     return Vec3b(h / 2, s * 255, l * 255);
 }
 
-float hueToRgb(float p, float q, float t) {
-    if (t < 0) {
-        t += 1;
-    }
-    if (t > 1) {
-        t -= 1;
-    }
-    if (t < 1 / 6.0f) {
-        return p + (q - p) * 6 * t;
-    }
-    if (t < 1 / 2.0f) {
-        return q;
-    }
-    if (t < 2 / 3.0f) {
-        return p + (q - p) * (2 / 3.0f - t) * 6;
-    }
-    
-    return p;
-}
-
 Vec3b hslToRgb(Vec3b hsl) {
-    float h = hsl[0] * 2 / 360.0f, s = hsl[1] / 255.0f, l = hsl[2] / 255.0f ;
+    float h = (hsl[0] * 2.0f) / 60.0f, s = hsl[1] / 255.0f, l = hsl[2] / 255.0f ;
     float r, g, b;
 
-    if (s == 0) {
-        r = g = b = l;
-    } else {
-        float q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-        float p = 2 * l - q;
-        r = hueToRgb(p, q, h + 1 / 3.0f);
-        g = hueToRgb(p, q, h);
-        b = hueToRgb(p, q, h - 1 / 3.0f);
+    float c = (1 - abs(2 * l - 1)) * s;
+    float x = c * (1 - abs(fmod(h, 2) - 1));
+    float m = l - c / 2;
+
+    if (h < 1) {
+        r = c;
+        g = x;
+        b = 0;
+    }
+    else if (h < 2) {
+        r = x;
+        g = c;
+        b = 0;
+    }
+    else if (h < 3) {
+        r = 0;
+        g = c;
+        b = x;
+    }
+    else if (h < 4) {
+        r = 0;
+        g = x;
+        b = c;
+    }
+    else if (h < 5) {
+        r = x;
+        g = 0;
+        b = c;
+    }
+    else {
+        r = c;
+        g = 0;
+        b = x;
     }
 
-    return Vec3b(b * 255, g * 255, r * 255);
+    return Vec3b((b + m) * 255, (g + m) * 255, (r + m) * 255);
 }
 
 int main(int argc, char* argv[]) {
