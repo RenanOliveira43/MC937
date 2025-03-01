@@ -16,17 +16,17 @@ Vec3b rgbToHsl(Vec3b rgb) {
             h = 60 * fmod(((g - b) / delta), 6);
         }
         else if (g == chigh) {
-           h = 60 * (((b - r) / delta) + 2);
+            h = 60 * (((b - r) / delta) + 2);
         }
         else {
             h = 60 * (((r - g) / delta) + 4);
         }
-            
-        s = delta / (1 - abs(2 * l - 1));
-
+        
         if (h < 0) {
             h += 360;
         }
+
+        s = delta / (1 - abs(2 * l - 1));
     }
    
     return Vec3b(h / 2, s * 255, l * 255);
