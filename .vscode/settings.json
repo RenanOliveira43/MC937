@@ -64,7 +64,8 @@
         "streambuf": "cpp",
         "thread": "cpp",
         "typeinfo": "cpp",
-        "variant": "cpp"
+        "variant": "cpp",
+        "cinttypes": "cpp"
     },
     "cmake.sourceDirectory": "/home/renan/Documents/MC937/lab01"
 }
