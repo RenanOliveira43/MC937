@@ -5,9 +5,7 @@
 #include <iostream>
 #include <cstring>
 #include <glm/gtc/matrix_transform.hpp>
-#include <string>
-#include <fstream>
-#include <sstream>
+
 
 struct Vertex {
     glm::vec3 position;
@@ -17,39 +15,44 @@ std::vector<Vertex> vertices;
 std::vector<unsigned int> indices;
 
 bool loadOBJ(const std::string& path) {
-    std::ifstream file(path);
-    if (!file.is_open()) {
+    FILE* file = std::fopen(path.c_str(), "r");
+    if (!file) {
         std::cerr << "Failed to open OBJ file: " << path << std::endl;
         return false;
     }
 
-    std::vector<glm::vec3> temp_positions;
-    std::vector<unsigned int> temp_indices;
+    std::vector<glm::vec3> temp_positions; 
+    std::vector<unsigned int> temp_indices; 
 
-    std::string line;
-    while (std::getline(file, line)) {
-        std::istringstream s(line);
-        std::string type;
-        s >> type;
-
-        if (type == "v") {
-            glm::vec3 position;
-            s >> position.x >> position.y >> position.z;
-            temp_positions.push_back(position);
-        } else if (type == "f") {
+    char line[128];
+    while (std::fgets(line, sizeof(line), file)) {
+        if (line[0] == 'v') { 
+            glm::vec3 vertex;
+            std::sscanf(line, "v %f %f %f", &vertex.x, &vertex.y, &vertex.z);
+            
+            temp_positions.push_back(vertex);
+        } 
+        else if (line[0] == 'f') {
             unsigned int vIndex[3];
-            for (int i = 0; i < 3; i++) {
-                s >> vIndex[i];
-                temp_indices.push_back(vIndex[i] - 1);
-            }
+            std::sscanf(line, "f %u %u %u", &vIndex[0], &vIndex[1], &vIndex[2]);
+            
+            temp_indices.push_back(vIndex[0] - 1);
+            temp_indices.push_back(vIndex[1] - 1);
+            temp_indices.push_back(vIndex[2] - 1);
         }
     }
-
-    for (size_t i = 0; i < temp_indices.size(); i++) {
-        vertices.push_back({temp_positions[temp_indices[i]]});
+    
+    vertices.clear();
+    for (unsigned int index : temp_indices) {
+        if (index < temp_positions.size()) {
+            Vertex vertex;
+            vertex.position = temp_positions[index];
+            vertices.push_back(vertex);
+        }
     }
     
-    indices = temp_indices;
+    std::fclose(file);
+
     return true;
 }
 
@@ -98,9 +101,8 @@ glm::vec3 getCentroModelo() {
         max = glm::max(max, vertex.position);
     }
 
-    return (min + max); 
+    return (min + max) / 2.0f; 
 }
-
 
 int render() {
     GLFWwindow* window;
@@ -142,7 +144,7 @@ int render() {
     glBindVertexArray(0);
 
     while (!glfwWindowShouldClose(window)) {
-        glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT);
     
         glUseProgram(shaderProgram);
@@ -165,10 +167,6 @@ int render() {
         glfwPollEvents();
     }
     
-    glDeleteVertexArrays(1, &VAO);
-    glDeleteBuffers(1, &VBO);
-    glDeleteProgram(shaderProgram);
-
     glfwDestroyWindow(window);
     glfwTerminate();
 
@@ -177,7 +175,7 @@ int render() {
 
 int main(int argc, char **argv) {
     if (argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " <obj file>" << std::endl;
+        std::cerr << "Invalid input" << std::endl;
         return 1;
     }
 
