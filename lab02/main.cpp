@@ -142,7 +142,7 @@ int render() {
 
         model = glm::translate(model, -modelCenter);
         model = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f));
-        model = glm::scale(model, glm::vec3(5.0f, 5.0f, 5.0f));
+        model = glm::scale(model, glm::vec3(4.0f, 4.0f, 4.0f));
         
         GLuint modelLoc = glGetUniformLocation(shaderProgram, "model");
         glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
