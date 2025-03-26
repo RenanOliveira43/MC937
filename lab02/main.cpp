@@ -5,14 +5,9 @@
 #include <iostream>
 #include <cstring>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
-
-struct Vertex {
-    glm::vec3 position;
-};
-
-std::vector<Vertex> vertices;
-std::vector<unsigned int> indices;
+std::vector<glm::vec3> vertices;
 
 bool loadOBJ(const std::string& path) {
     FILE* file = std::fopen(path.c_str(), "r");
@@ -21,8 +16,7 @@ bool loadOBJ(const std::string& path) {
         return false;
     }
 
-    std::vector<glm::vec3> temp_positions; 
-    std::vector<unsigned int> temp_indices; 
+    std::vector<glm::vec3> tempPositions; 
 
     char line[128];
     while (std::fgets(line, sizeof(line), file)) {
@@ -30,24 +24,15 @@ bool loadOBJ(const std::string& path) {
             glm::vec3 vertex;
             std::sscanf(line, "v %f %f %f", &vertex.x, &vertex.y, &vertex.z);
             
-            temp_positions.push_back(vertex);
+            tempPositions.push_back(vertex);
         } 
         else if (line[0] == 'f') {
             unsigned int vIndex[3];
             std::sscanf(line, "f %d %d %d", &vIndex[0], &vIndex[1], &vIndex[2]);
             
-            temp_indices.push_back(vIndex[0] - 1);
-            temp_indices.push_back(vIndex[1] - 1);
-            temp_indices.push_back(vIndex[2] - 1);
-        }
-    }
-    
-    vertices.clear();
-    for (unsigned int index : temp_indices) {
-        if (index < temp_positions.size()) {
-            Vertex vertex;
-            vertex.position = temp_positions[index];
-            vertices.push_back(vertex);
+            vertices.push_back(tempPositions[vIndex[0] - 1]);
+            vertices.push_back(tempPositions[vIndex[1] - 1]);
+            vertices.push_back(tempPositions[vIndex[2] - 1]);
         }
     }
     
@@ -93,12 +78,12 @@ GLuint createShaderProgram() {
 }
 
 glm::vec3 getCentroModelo() {
-    glm::vec3 min = vertices[0].position;
-    glm::vec3 max = vertices[0].position;
+    glm::vec3 min = vertices[0];
+    glm::vec3 max = vertices[0];
 
     for (const auto& vertex : vertices) {
-        min = glm::min(min, vertex.position);
-        max = glm::max(max, vertex.position);
+        min = glm::min(min, vertex);
+        max = glm::max(max, vertex);
     }
 
     return (min + max) / 2.0f; 
@@ -111,7 +96,7 @@ int render() {
         return -1;
     }
 
-    window = glfwCreateWindow(800, 600,"Modelo", nullptr, nullptr);
+    window = glfwCreateWindow(800, 600, "Modelo", nullptr, nullptr);
     if (!window) {
         glfwTerminate();
         return -1;
@@ -134,8 +119,7 @@ int render() {
     glBindVertexArray(VAO);
     glBindBuffer(GL_ARRAY_BUFFER, VBO);
     
-
-    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(Vertex), vertices.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), vertices.data(), GL_STATIC_DRAW);
     
     glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
@@ -156,12 +140,12 @@ int render() {
     
         angle += 0.01f;
 
-        model = glm::translate(glm::mat4(1.0f), -modelCenter);
+        model = glm::translate(model, -modelCenter);
         model = glm::rotate(glm::mat4(1.0f), angle, glm::vec3(0.0f, 1.0f, 0.0f));
-        model = glm::scale(model, glm::vec3(4.0f, 4.0f, 4.0f));
+        model = glm::scale(model, glm::vec3(5.0f, 5.0f, 5.0f));
         
         GLuint modelLoc = glGetUniformLocation(shaderProgram, "model");
-        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, &model[0][0]);
+        glUniformMatrix4fv(modelLoc, 1, GL_FALSE, glm::value_ptr(model));
         
         glBindVertexArray(VAO);
         glDrawArrays(GL_TRIANGLES, 0, vertices.size());
