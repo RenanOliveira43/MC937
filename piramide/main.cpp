@@ -16,6 +16,14 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+float lastX = 400.0f, lastY = 400.0f; // posição inicial do cursor (meio da tela)
+float yaw = -90.0f;   // Ângulo horizontal
+float pitch = 0.0f;   // Ângulo vertical
+bool firstMouse = true;
+bool rotating = false;
+// Camera position
+glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 22.0f);
+
 std::vector<glm::vec3> vertices;
 std::vector<glm::vec3> normals;
 
@@ -55,6 +63,51 @@ bool loadOBJ(const std::string& path) {
 
     fclose(file);
     return true;
+}
+
+void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
+    if (!rotating) return;
+
+    if (firstMouse) { // previne salto ao iniciar
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = false;
+    }
+
+    float xoffset = xpos - lastX;
+    float yoffset = lastY - ypos; // y é invertido
+
+    lastX = xpos;
+    lastY = ypos;
+
+    float sensitivity = 0.1f;
+    xoffset *= sensitivity;
+    yoffset *= sensitivity;
+
+    yaw += xoffset;
+    pitch += yoffset;
+
+    // Limitar o pitch para evitar virar completamente
+    if (pitch > 89.0f) pitch = 89.0f;
+    if (pitch < -89.0f) pitch = -89.0f;
+
+    // Atualiza a direção da câmera
+    glm::vec3 front;
+    front.x = cos(glm::radians(pitch)) * cos(glm::radians(yaw));
+    front.y = sin(glm::radians(pitch));
+    front.z = cos(glm::radians(pitch)) * sin(glm::radians(yaw));
+    cameraPos = glm::normalize(front) * 22.0f; // mesma distância da origem
+}
+
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
+    if (button == GLFW_MOUSE_BUTTON_LEFT) {
+        if (action == GLFW_PRESS) {
+            rotating = true;
+        } else if (action == GLFW_RELEASE) {
+            rotating = false;
+            firstMouse = true; // evita saltos de rotação ao soltar
+        }
+    }
 }
 
 int main(int argc, char** argv) {
@@ -102,64 +155,6 @@ int main(int argc, char** argv) {
         std::cerr << "ERROR: GLEW Initialization Failed\n";
         return -1;
     }
-
-    ///////////////////////////////////////////////////////////
-    // GEOMETRY DEFINITION - Pyramid with vertices and normals
-    ///////////////////////////////////////////////////////////
-
-    // Define pyramid vertices (4 triangular faces + square base)
-    // std::vector<glm::vec3> pyramid =
-    //     { glm::vec3(-1.0f, -1.0f, 1.0f),  // Front face
-    //         glm::vec3(1.0f, -1.0f, 1.0f),
-    //         glm::vec3(0.0f, 1.0f, 0.0f),
-    //         glm::vec3(1.0f, -1.0f, 1.0f),  // Right face
-    //         glm::vec3(1.0f, -1.0f, -1.0f),
-    //         glm::vec3(0.0f, 1.0f, 0.0f),
-    //         glm::vec3(1.0f, -1.0f, -1.0f), // Back face
-    //         glm::vec3(-1.0f, -1.0f, -1.0f),
-    //         glm::vec3(0.0f, 1.0f, 0.0f),
-    //         glm::vec3(-1.0f, -1.0f, -1.0f), // Left face
-    //         glm::vec3(-1.0f, -1.0f, 1.0f),
-    //         glm::vec3(0.0f, 1.0f, 0.0f),
-    //         glm::vec3(-1.0f, -1.0f, -1.0f), // Base (2 triangles)
-    //         glm::vec3(1.0f, -1.0f, 1.0f),
-    //         glm::vec3(-1.0f, -1.0f, 1.0f),
-    //         glm::vec3(1.0f, -1.0f, 1.0f),
-    //         glm::vec3(-1.0f, -1.0f, -1.0f),
-    //         glm::vec3(1.0f, -1.0f, -1.0f)
-    //     };
-
-    // // Normal vectors for each vertex (pre-calculated for flat shading)
-    // std::vector<glm::vec3> pyramidNormals =
-    //     { // Front face normals (normalized vector pointing forward+up)
-    //         glm::vec3(0.0f, 0.707f, 0.707f),
-    //         glm::vec3(0.0f, 0.707f, 0.707f),
-    //         glm::vec3(0.0f, 0.707f, 0.707f),
-
-    //         // Right face normals (pointing right+up)
-    //         glm::vec3(0.707f, 0.707f, 0.0f),
-    //         glm::vec3(0.707f, 0.707f, 0.0f),
-    //         glm::vec3(0.707f, 0.707f, 0.0f),
-
-    //         // Back face normals (pointing back+up)
-    //         glm::vec3(0.0f, 0.707f, -0.707f),
-    //         glm::vec3(0.0f, 0.707f, -0.707f),
-    //         glm::vec3(0.0f, 0.707f, -0.707f),
-
-    //         // Left face normals (pointing left+up)
-    //         glm::vec3(-0.707f, 0.707f, 0.0f),
-    //         glm::vec3(-0.707f, 0.707f, 0.0f),
-    //         glm::vec3(-0.707f, 0.707f, 0.0f),
-
-    //         // Base normals (all pointing down)
-    //         glm::vec3(0.0f, -1.0f, 0.0f),
-    //         glm::vec3(0.0f, -1.0f, 0.0f),
-    //         glm::vec3(0.0f, -1.0f, 0.0f),
-
-    //         glm::vec3(0.0f, -1.0f, 0.0f),
-    //         glm::vec3(0.0f, -1.0f, 0.0f),
-    //         glm::vec3(0.0f, -1.0f, 0.0f)
-    //     };
 
     ///////////////////////////////////////////////////////////
     // BUFFER SETUP - VAO and VBOs
@@ -351,8 +346,6 @@ int main(int argc, char** argv) {
     float modelAngle = 0.f; // Model rotation angle
     float camAngle = 0.f;   // Camera rotation angle
 
-    // Camera position
-    glm::vec3 cameraPos = glm::vec3(0.0f, 0.0f, 22.0f);
 
     ///////////////////////////////////////////////////////////
     // RENDERING LOOP
@@ -365,7 +358,11 @@ int main(int argc, char** argv) {
 
         // Get uniform locations for lighting parameters
         GLuint mvLoc = glGetUniformLocation(shaderProgram, "mvMat");
+        
+        glfwSetMouseButtonCallback(window, mouse_button_callback);
+        glfwSetCursorPosCallback(window, mouse_callback);
 
+        
         // Light uniform locations
         GLuint globalAmbLoc = glGetUniformLocation(shaderProgram, "globalAmbient");
         GLuint ambLoc = glGetUniformLocation(shaderProgram, "light.ambient");
@@ -383,7 +380,7 @@ int main(int argc, char** argv) {
         glm::vec3 targetPos = glm::vec3(0.0f, 0.0f, 0.0f);
         glm::vec3 upDirection = glm::vec3(0.0f, 1.0f, 0.0f);
 
-        // Camera rotation calculations
+        //Camera rotation calculations
         auto CTo = glm::translate(glm::mat4(1.f), -cameraPos);
         auto CTb = glm::translate(glm::mat4(1.f), cameraPos);
         auto CR = glm::rotate(glm::mat4(1.f), glm::radians(-camAngle), glm::vec3(0.f, 1.f, 0.f));
@@ -391,9 +388,9 @@ int main(int argc, char** argv) {
         // // Calculate rotated camera position
         auto cameraPosR = glm::vec3(glm::vec4(cameraPos, 1.0) * (CTb * CR * CTo));
 
-
         // Create view matrix
-        glm::mat4 viewMat = glm::lookAt(cameraPosR, targetPos, upDirection);
+        viewMat = glm::lookAt(cameraPos, glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+
 
         /* MODEL MATRIX SETUP */
         // Rotate model around its base
@@ -454,7 +451,7 @@ int main(int argc, char** argv) {
 
         /* UPDATE ANIMATION ANGLES */
         modelAngle = modelAngle <= 360 ? modelAngle+0.5f : 0;
-        //camAngle = camAngle < 360 ? camAngle+ 0.5f : 0;
+        //camAngle = camAngle <= 360 ? camAngle+ 0.5f : 0;
     }
 
     glfwTerminate();
