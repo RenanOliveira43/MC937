@@ -23,8 +23,6 @@ glm::vec3 specularColor = glm::vec3(1.0f, 0.3f, 0.3f);
 
 float shininess = 51.2f;  
 
-
-
 std::vector<glm::vec3> vertices;  
 std::vector<glm::ivec3> faceIndices;
 
@@ -122,7 +120,7 @@ int main(int argc, char** argv) {
     }
 
 
-    // // 1. Calcular a bounding box do objeto
+    // Calcular a bounding box do objeto
     glm::vec3 minBounds = glm::vec3(FLT_MAX);
     glm::vec3 maxBounds = glm::vec3(-FLT_MAX);
 
@@ -131,12 +129,8 @@ int main(int argc, char** argv) {
         maxBounds = glm::max(maxBounds, v);
     }
 
-    // 2. Calcular o centro e a altura máxima
     glm::vec3 center = (minBounds + maxBounds) * 0.5f;
-    float height = maxBounds.y;
-
-    float lightHeight = height + 10.0f; // Offset de 10 unidades acima
-    lightPosition = glm::vec3(center.x, lightHeight, center.z);
+    lightPosition = center + glm::vec3(0.0f, 0.0f, (maxBounds - minBounds).z * 2.0f);
 
     // Gerar raios esféricos a partir dessa posição
     std::vector<Ray> rays;
@@ -167,11 +161,13 @@ int main(int argc, char** argv) {
 
     for (int triIndex = 0; triIndex < triangles.size(); ++triIndex) {
         const Triangle& tri = triangles[triIndex];
-
+        glm::vec3 hitPoint;
         bool hit = false;
+        
         for (const Ray& ray : rays) {
             float t;
             if (intersectRayTriangle(ray, tri, t)) {
+                hitPoint = ray.origin + ray.direction * t;
                 hit = true;
                 break;
             }
@@ -179,13 +175,13 @@ int main(int argc, char** argv) {
 
         glm::vec3 finalColor;
         if (hit) {
+            finalColor = computeADS(hitPoint, tri.normal);
+        } 
+        else {
             glm::vec3 c0 = computeADS(tri.v0, tri.normal);
             glm::vec3 c1 = computeADS(tri.v1, tri.normal);
             glm::vec3 c2 = computeADS(tri.v2, tri.normal);
             finalColor = (c0 + c1 + c2) / 3.0f;
-        } 
-        else {
-            finalColor = ambientColor;
         }
 
         finalColor = glm::clamp(finalColor, glm::vec3(0.0f), glm::vec3(1.0f));
