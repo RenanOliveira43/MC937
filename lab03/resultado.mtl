@@ -1,0 +1,36 @@
+newmtl mat0
+Kd -nan -nan -nan
+
+newmtl mat1
+Kd -nan -nan -nan
+
+newmtl mat2
+Kd 0.1 0.1 0.3
+
+newmtl mat3
+Kd 0.1 0.1 0.3
+
+newmtl mat4
+Kd -nan -nan -nan
+
+newmtl mat5
+Kd -nan -nan -nan
+
+newmtl mat6
+Kd 0.273205 0.56188 0.473205
+
+newmtl mat7
+Kd 0.273205 0.56188 0.473205
+
+newmtl mat8
+Kd -nan -nan -nan
+
+newmtl mat9
+Kd -nan -nan -nan
+
+newmtl mat10
+Kd 0.1 0.1 0.3
+
+newmtl mat11
+Kd 0.1 0.1 0.3
+
