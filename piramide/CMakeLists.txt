@@ -13,10 +13,20 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(glm)
 
+# GLFW config para Linux
+set(GLFW_BUILD_WAYLAND OFF)
+set(GLFW_BUILD_X11 ON)
+
+# Adiciona GLEW e GLFW
+add_subdirectory(external/glew-2.2.0/build/cmake)
+add_subdirectory(external/glfw-3.4)
+
 find_package(OpenGL REQUIRED)
-find_package(glfw3 3.3 REQUIRED)
-find_package(GLEW REQUIRED)
 
 add_executable(piramide main.cpp)
 
-target_link_libraries(piramide PRIVATE glm OpenGL::GL glfw GLEW::GLEW)
+# Adiciona os includes do GLEW
+target_include_directories(piramide PRIVATE external/glew-2.2.0/include)
+
+# Linka tudo
+target_link_libraries(piramide PRIVATE glm OpenGL::GL glfw glew_s)
