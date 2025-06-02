@@ -148,19 +148,15 @@ int main(int argc, char** argv) {
         }
     }
 
-
-    std::vector<Triangle> triangles;
+    int triIndex = 0;
     for (auto& f : faceIndices) {
         Triangle tri;
         tri.v0 = vertices[f.x - 1];  
         tri.v1 = vertices[f.y - 1];
         tri.v2 = vertices[f.z - 1];
         tri.normal = glm::normalize(glm::cross(tri.v1 - tri.v0, tri.v2 - tri.v0));
-        triangles.push_back(tri);
-    }
 
-    for (int triIndex = 0; triIndex < triangles.size(); ++triIndex) {
-        const Triangle& tri = triangles[triIndex];
+    
         glm::vec3 hitPoint;
         bool hit = false;
         
@@ -197,6 +193,8 @@ int main(int argc, char** argv) {
         int i2 = faceIndices[triIndex].z;
         objOut << "usemtl " << matName << "\n";
         objOut << "f " << i0 << " " << i1 << " " << i2 << "\n";
+
+        triIndex++;
     }
         
     objOut.close();
