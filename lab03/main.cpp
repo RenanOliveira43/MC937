@@ -130,7 +130,7 @@ int main(int argc, char** argv) {
     }
 
     glm::vec3 center = (minBounds + maxBounds) * 0.5f;
-    lightPosition = center + glm::vec3(0.0f, 0.0f, (maxBounds - minBounds).z * 2.0f);
+    lightPosition = center + glm::vec3(0.0f, (maxBounds - minBounds).z * 2.0f, 0.0f);
 
     // Gerar raios esféricos a partir dessa posição
     std::vector<Ray> rays;
