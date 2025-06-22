@@ -110,8 +110,7 @@ bool loadOBJ(const std::string& path, Objeto& obj) {
     return true;
 }
 
-bool interseptaTriangulo(const std::array<unsigned, 3>& triA, const std::vector<glm::vec3>& coordsA,
-                       const std::array<unsigned, 3>& triB, const std::vector<glm::vec3>& coordsB) {
+bool interseptaTriangulo(const std::array<unsigned, 3>& triA, const std::vector<glm::vec3>& coordsA, const std::array<unsigned, 3>& triB, const std::vector<glm::vec3>& coordsB) {
     glm::vec3 A0 = coordsA[triA[0]];
     glm::vec3 A1 = coordsA[triA[1]];
     glm::vec3 A2 = coordsA[triA[2]];
@@ -198,6 +197,7 @@ void verificaColisao(const AABBNode* a, const AABBNode* b) {
             }
         }
     }
+    
     else if (a->isLeaf()) {
         verificaColisao(a, b->left_child.get());
         verificaColisao(a, b->right_child.get());
@@ -222,6 +222,23 @@ void verificaColisao(const AABBNode* a, const AABBNode* b) {
     }
 }
 
+glm::vec3 calcularTamanho(const std::vector<glm::vec3>& vertices) {
+    glm::vec3 min = vertices[0];
+    glm::vec3 max = vertices[0];
+
+    for (const auto& v : vertices) {
+        min = glm::min(min, v);
+        max = glm::max(max, v);
+    }
+
+    return max - min;
+}
+
+float comprimentoMaximo(const glm::vec3& tamanho) {
+    return std::max({tamanho.x, tamanho.y, tamanho.z});
+}
+
+
 int main(int argc, char** argv) {
     if (argc < 2) {
         std::cerr << "Uso: " << argv[0] << " <modelo.obj>" << std::endl;
@@ -241,17 +258,6 @@ int main(int argc, char** argv) {
     std::cout << "Vertices: " << obj1.vertices.size() << " | Triângulos: " << obj1.triangles.size() << "\n";
     std::cout << "Vertices: " << obj2.vertices.size() << " | Triângulos: " << obj2.triangles.size() << "\n";
 
-    auto coords1 = std::make_shared<std::vector<glm::vec3>>(obj1.vertices);
-    auto coords2 = std::make_shared<std::vector<glm::vec3>>(obj2.vertices);
-    
-    Mesh mesh1(coords1, obj1.triangles);
-    AABBTree tree1(mesh1);
-    tree1.build();
-
-    Mesh mesh2(coords2, obj2.triangles);
-    AABBTree tree2(mesh2);
-    tree2.build();
-
     // OPENGL 
     GLFWwindow* window;
 
@@ -259,7 +265,7 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    window = glfwCreateWindow(1920, 1080, "Modelo", nullptr, nullptr);
+    window = glfwCreateWindow(800, 600, "Modelo", nullptr, nullptr);
     if (!window) {
         glfwTerminate();
         return -1;
@@ -343,11 +349,6 @@ int main(int argc, char** argv) {
     glLinkProgram(shaderProgram);
     glUseProgram(shaderProgram);
 
-
-    ///////////////////////////////////////////////////////////
-    // PROJECTION MATRIX SETUP
-    ///////////////////////////////////////////////////////////
-
     // Create perspective projection matrix
     int width, height;
     glfwGetFramebufferSize(window, &width, &height);
@@ -362,35 +363,76 @@ int main(int argc, char** argv) {
 
     glm::mat4 modelMat, viewMat, mvMat;
 
+    // Antes do loop principal, calcule os fatores de escala
+    glm::vec3 tamanho1 = calcularTamanho(obj1.vertices);
+    glm::vec3 tamanho2 = calcularTamanho(obj2.vertices);
+
+    float escala1 = 1.0f / comprimentoMaximo(tamanho1);
+    float escala2 = 1.0f / comprimentoMaximo(tamanho2);
+
+    //float modelAngle = 0.0f; 
 
     while (!glfwWindowShouldClose(window)) {
         glClearColor(0.2f, 0.2f, 0.5f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glm::mat4 viewMat = glm::lookAt(glm::vec3(0.0f, 0.0f, 10.0f), glm::vec3(0.0f),glm::vec3(0.0f, 1.0f, 0.0f));
+        glm::mat4 viewMat = glm::lookAt(glm::vec3(0.0f, 0.0f, 10.0f), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+
+        std::vector<std::shared_ptr<std::vector<glm::vec3>>> transformedCoords;
+        std::vector<AABBTree> trees;
 
         for (size_t i = 0; i < objetos.size(); ++i) {
             Objeto& obj = objetos[i];
-            glm::mat4 To = glm::translate(glm::mat4(1.0f), -obj.vertices[0]); 
-            glm::mat4 S  = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f));     
+
+            float escalaAtual = (i == 0) ? escala1 : escala2;
+
+            glm::mat4 To = glm::translate(glm::mat4(1.0f), -obj.vertices[0]);
+            glm::mat4 S  = glm::scale(glm::mat4(1.0f), glm::vec3(escalaAtual));
+           // glm::mat4 R = glm::rotate(glm::mat4(1.f), glm::radians(modelAngle), glm::vec3(0.f,1.f,0.f));
             glm::mat4 Tb = glm::translate(glm::mat4(1.0f), obj.vertices[0]);
-            glm::mat4 modelMat = Tb * S * To;
+
+            glm::mat4 translacaoLateral = glm::mat4(1.0f);
+            
+            if (i == 1) {
+                translacaoLateral = glm::translate(glm::mat4(1.0f), glm::vec3(0.5f, 0.0f, 0.0f));
+            }
+
+            glm::mat4 modelMat = translacaoLateral * Tb * S * To;
 
             glm::mat4 mvMat = viewMat * modelMat;
-
             glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mvMat));
 
+            // Render
             glBindVertexArray(obj.vao);
             glDrawElements(GL_TRIANGLES, obj.triangles.size() * 3, GL_UNSIGNED_INT, 0);
 
+            // // Atualiza vértices transformados
+            auto transformed = std::make_shared<std::vector<glm::vec3>>();
+            transformed->reserve(obj.vertices.size());
+            for (const auto& v : obj.vertices) {
+                glm::vec4 v4 = modelMat * glm::vec4(v, 1.0f);
+                transformed->push_back(glm::vec3(v4));
+            }
+
+            Mesh mesh(transformed, obj.triangles);
+            AABBTree tree(mesh);
+            tree.build();
+
+            transformedCoords.push_back(transformed);
+            trees.push_back(std::move(tree));
+
         }
 
-        verificaColisao(tree1.root.get(), tree2.root.get());
+        if (trees.size() >= 2) {
+            verificaColisao(trees[0].root.get(), trees[1].root.get());
+        }
 
         glfwSwapBuffers(window);
         glfwPollEvents();
+
+        //modelAngle = modelAngle <= 360 ? modelAngle + 0.5f : 0;
     }
-    
+
     glfwTerminate();
 
     return 0;
