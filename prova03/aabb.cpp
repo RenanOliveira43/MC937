@@ -179,8 +179,6 @@ struct AABBTree
 
     void build() { build(root, 0); std::cout << "[ OK ] Build AABB tree\n"; }
 
-    void print(const std::unique_ptr<AABBNode>& node) const;
-
 private:
     void build(std::unique_ptr<AABBNode>& node, unsigned depth);
 };

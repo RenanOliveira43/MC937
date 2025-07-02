@@ -362,7 +362,7 @@ int main(int argc, char** argv) {
         #version 330 core
         out vec4 FragColor;
         void main() {
-            FragColor = vec4(1.0, 0.8, 0.2, 1.0);
+            FragColor = vec4(1.0, 1.0, 1.0, 1.0);
         }
         )";
 
@@ -403,10 +403,10 @@ int main(int argc, char** argv) {
     float escala1 = 1.0f / comprimentoMaximo(tamanho1);
     float escala2 = 1.0f / comprimentoMaximo(tamanho2);
 
-    float modelAngle = 0.0f; 
+    //float modelAngle = 0.0f; 
 
     while (!glfwWindowShouldClose(window)) {
-        glClearColor(0.2f, 0.2f, 0.5f, 0.0f);
+        glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         //glm::mat4 viewMat = glm::lookAt(glm::vec3(0.0f, 0.0f, 10.0f), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
@@ -415,7 +415,6 @@ int main(int argc, char** argv) {
         viewMat = glm::translate(viewMat, glm::vec3(0.0f, 0.0f, -10.0f)); // Move para trás
         viewMat = glm::rotate(viewMat, glm::radians(pitch), glm::vec3(1.0f, 0.0f, 0.0f));
         viewMat = glm::rotate(viewMat, glm::radians(yaw),   glm::vec3(0.0f, 1.0f, 0.0f));
-
 
         std::vector<std::shared_ptr<std::vector<glm::vec3>>> transformedCoords;
         std::vector<AABBTree> trees;
@@ -468,12 +467,10 @@ int main(int argc, char** argv) {
         glfwSwapBuffers(window);
         glfwPollEvents();
 
-        modelAngle = modelAngle <= 360 ? modelAngle + 0.5f : 0;
+        //modelAngle = modelAngle <= 360 ? modelAngle + 0.5f : 0;
     }
 
     glfwTerminate();
 
     return 0;
 }
-
-
