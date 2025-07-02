@@ -316,7 +316,7 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
 // Callback function for mouse button events
 //========================================================================
 
-void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
+void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
 {
     if (button != GLFW_MOUSE_BUTTON_LEFT)
         return;
@@ -409,7 +409,7 @@ int main(int argc, char* argv[])
 
     glfwSetKeyCallback(window, key_callback);
     glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
-    glfwSetMouseButtonCallback(window, mouse_button_callback);
+    glfwSetMouseButtonCallback(window, mouseButtonCallback);
     glfwSetCursorPosCallback(window, cursor_position_callback);
     glfwSetScrollCallback(window, scroll_callback);
 

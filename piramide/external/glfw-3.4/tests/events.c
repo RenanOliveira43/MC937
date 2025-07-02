@@ -365,7 +365,7 @@ static void window_maximize_callback(GLFWwindow* window, int maximized)
            maximized ? "maximized" : "unmaximized");
 }
 
-static void mouse_button_callback(GLFWwindow* window, int button, int action, int mods)
+static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods)
 {
     Slot* slot = glfwGetWindowUserPointer(window);
     printf("%08x to %i at %0.3f: Mouse button %i (%s) (with%s) was %s\n",
@@ -642,7 +642,7 @@ int main(int argc, char** argv)
         glfwSetWindowFocusCallback(slots[i].window, window_focus_callback);
         glfwSetWindowIconifyCallback(slots[i].window, window_iconify_callback);
         glfwSetWindowMaximizeCallback(slots[i].window, window_maximize_callback);
-        glfwSetMouseButtonCallback(slots[i].window, mouse_button_callback);
+        glfwSetMouseButtonCallback(slots[i].window, mouseButtonCallback);
         glfwSetCursorPosCallback(slots[i].window, cursor_position_callback);
         glfwSetCursorEnterCallback(slots[i].window, cursor_enter_callback);
         glfwSetScrollCallback(slots[i].window, scroll_callback);

@@ -99,7 +99,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
     cameraPos = glm::normalize(front) * 22.0f; // mesma distância da origem
 }
 
-void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
+void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
     if (button == GLFW_MOUSE_BUTTON_LEFT) {
         if (action == GLFW_PRESS) {
             rotating = true;
@@ -359,7 +359,7 @@ int main(int argc, char** argv) {
         // Get uniform locations for lighting parameters
         GLuint mvLoc = glGetUniformLocation(shaderProgram, "mvMat");
         
-        glfwSetMouseButtonCallback(window, mouse_button_callback);
+        glfwSetMouseButtonCallback(window, mouseButtonCallback);
         glfwSetCursorPosCallback(window, mouse_callback);
 
         

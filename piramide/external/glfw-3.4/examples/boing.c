@@ -53,7 +53,7 @@ void init( void );
 void display( void );
 void reshape( GLFWwindow* window, int w, int h );
 void key_callback( GLFWwindow* window, int key, int scancode, int action, int mods );
-void mouse_button_callback( GLFWwindow* window, int button, int action, int mods );
+void mouseButtonCallback( GLFWwindow* window, int button, int action, int mods );
 void cursor_position_callback( GLFWwindow* window, double x, double y );
 void DrawBoingBall( void );
 void BounceBall( double dt );
@@ -273,7 +273,7 @@ static void set_ball_pos ( GLfloat x, GLfloat y )
    ball_y = y - (height / 2);
 }
 
-void mouse_button_callback( GLFWwindow* window, int button, int action, int mods )
+void mouseButtonCallback( GLFWwindow* window, int button, int action, int mods )
 {
    if (button != GLFW_MOUSE_BUTTON_LEFT)
       return;
@@ -640,7 +640,7 @@ int main( void )
 
    glfwSetFramebufferSizeCallback(window, reshape);
    glfwSetKeyCallback(window, key_callback);
-   glfwSetMouseButtonCallback(window, mouse_button_callback);
+   glfwSetMouseButtonCallback(window, mouseButtonCallback);
    glfwSetCursorPosCallback(window, cursor_position_callback);
 
    glfwMakeContextCurrent(window);

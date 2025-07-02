@@ -46,7 +46,7 @@ void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
     pitch = glm::clamp(pitch, -89.0f, 89.0f);
 }
 
-void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
+void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
     if (button == GLFW_MOUSE_BUTTON_LEFT) {
         if (action == GLFW_PRESS) {
             mousePressed = true;
@@ -302,7 +302,7 @@ int main(int argc, char** argv) {
     }
 
     glfwSetCursorPosCallback(window, mouse_callback);
-    glfwSetMouseButtonCallback(window, mouse_button_callback);
+    glfwSetMouseButtonCallback(window, mouseButtonCallback);
 
     glfwMakeContextCurrent(window);
     glewExperimental = GL_TRUE;
@@ -440,7 +440,6 @@ int main(int argc, char** argv) {
             glm::mat4 mvMat = viewMat * modelMat;
             glUniformMatrix4fv(mvLoc, 1, GL_FALSE, glm::value_ptr(mvMat));
 
-            // Render
             glBindVertexArray(obj.vao);
             glDrawElements(GL_TRIANGLES, obj.triangles.size() * 3, GL_UNSIGNED_INT, 0);
 
