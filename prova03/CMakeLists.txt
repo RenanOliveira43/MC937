@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.5)
 
-project(prova03 LANGUAGES CXX)
+project(prova3 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -25,7 +25,7 @@ find_package(glfw3 3.3 REQUIRED)
 find_package(GLEW REQUIRED)
 
 # Fontes
-add_executable(prova03 main.cpp)
+add_executable(prova3 main.cpp)
 add_library(aabb aabb.cpp)
 
 # Inclui diretórios de cabeçalho
@@ -33,4 +33,4 @@ add_library(aabb aabb.cpp)
 
 # Vincula bibliotecas
 target_link_libraries(aabb PUBLIC glm::glm)
-target_link_libraries(prova03 PRIVATE glm::glm OpenGL::GL glfw GLEW::GLEW aabb)
+target_link_libraries(prova3 PRIVATE glm::glm OpenGL::GL glfw GLEW::GLEW aabb)

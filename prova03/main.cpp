@@ -20,6 +20,44 @@ struct Objeto {
     GLuint ebo;
 };
 
+double lastX = 0.0, lastY = 0.0;
+float yaw = 0.0f, pitch = 0.0f;
+bool firstMouse = true;
+bool mousePressed = false;
+
+void mouse_callback(GLFWwindow* window, double xpos, double ypos) {
+    if (!mousePressed) return;
+
+    if (firstMouse) {
+        lastX = xpos;
+        lastY = ypos;
+        firstMouse = false;
+    }
+
+    float xoffset = xpos - lastX;
+    float yoffset = ypos - lastY;
+    lastX = xpos;
+    lastY = ypos;
+
+    float sensitivity = 0.3f;
+    yaw += xoffset * sensitivity;
+    pitch += yoffset * sensitivity;
+
+    pitch = glm::clamp(pitch, -89.0f, 89.0f);
+}
+
+void mouse_button_callback(GLFWwindow* window, int button, int action, int mods) {
+    if (button == GLFW_MOUSE_BUTTON_LEFT) {
+        if (action == GLFW_PRESS) {
+            mousePressed = true;
+            firstMouse = true;
+        }
+        else if (action == GLFW_RELEASE) {
+            mousePressed = false;
+        }
+    }
+}
+
 bool loadOBJ(const std::string& path, Objeto& obj) {
     std::ifstream file(path);
     if (!file) {
@@ -110,7 +148,7 @@ bool loadOBJ(const std::string& path, Objeto& obj) {
     return true;
 }
 
-bool interseptaTriangulo(const std::array<unsigned, 3>& triA, const std::vector<glm::vec3>& coordsA, const std::array<unsigned, 3>& triB, const std::vector<glm::vec3>& coordsB) {
+bool interceptaTriangulo(const std::array<unsigned, 3>& triA, const std::vector<glm::vec3>& coordsA, const std::array<unsigned, 3>& triB, const std::vector<glm::vec3>& coordsB) {
     glm::vec3 A0 = coordsA[triA[0]];
     glm::vec3 A1 = coordsA[triA[1]];
     glm::vec3 A2 = coordsA[triA[2]];
@@ -119,11 +157,9 @@ bool interseptaTriangulo(const std::array<unsigned, 3>& triA, const std::vector<
     glm::vec3 B1 = coordsB[triB[1]];
     glm::vec3 B2 = coordsB[triB[2]];
 
-    // Compute plane equation of triangle A
     glm::vec3 N1 = glm::cross(A1 - A0, A2 - A0);
     float d1 = -glm::dot(N1, A0);
     
-    // Test if all points of B lie on same side of A's plane
     float distB0 = glm::dot(N1, B0) + d1;
     float distB1 = glm::dot(N1, B1) + d1;
     float distB2 = glm::dot(N1, B2) + d1;
@@ -132,11 +168,9 @@ bool interseptaTriangulo(const std::array<unsigned, 3>& triA, const std::vector<
         (distB0 < 0 && distB1 < 0 && distB2 < 0))
         return false;
 
-    // Compute plane equation of triangle B
     glm::vec3 N2 = glm::cross(B1 - B0, B2 - B0);
     float d2 = -glm::dot(N2, B0);
     
-    // Test if all points of A lie on same side of B's plane
     float distA0 = glm::dot(N2, A0) + d2;
     float distA1 = glm::dot(N2, A1) + d2;
     float distA2 = glm::dot(N2, A2) + d2;
@@ -145,10 +179,8 @@ bool interseptaTriangulo(const std::array<unsigned, 3>& triA, const std::vector<
         (distA0 < 0 && distA1 < 0 && distA2 < 0))
         return false;
 
-    // Compute intersection line
     glm::vec3 D = glm::cross(N1, N2);
     
-    // Project onto axis where D is largest
     int axis;
     if (fabs(D.x) > fabs(D.y) && fabs(D.x) > fabs(D.z))
         axis = 0;
@@ -157,7 +189,6 @@ bool interseptaTriangulo(const std::array<unsigned, 3>& triA, const std::vector<
     else
         axis = 2;
 
-    // Simplified projection and interval overlap test
     auto project = [axis](const glm::vec3& v) { 
         return (axis == 0) ? v.x : (axis == 1) ? v.y : v.z; 
     };
@@ -186,7 +217,7 @@ void verificaColisao(const AABBNode* a, const AABBNode* b) {
     if (a->isLeaf() && b->isLeaf()) {
         for (const auto& triA : a->mesh.triangles) {
             for (const auto& triB : b->mesh.triangles) {
-                if (interseptaTriangulo(triA, *a->mesh.coordinates, 
+                if (interceptaTriangulo(triA, *a->mesh.coordinates, 
                                        triB, *b->mesh.coordinates)) {
                     std::cout << "Colisão detectada entre triângulos:\n";
                     std::cout << "Triângulo A: " << triA[0] << ", " << triA[1] << ", " << triA[2] << "\n";
@@ -207,7 +238,6 @@ void verificaColisao(const AABBNode* a, const AABBNode* b) {
         verificaColisao(a->right_child.get(), b);
     }
     else {
-        // Both are internal nodes - decide which to recurse into first
         float sizeA = glm::length(a->mesh.aabb.max_corner - a->mesh.aabb.min_corner);
         float sizeB = glm::length(b->mesh.aabb.max_corner - b->mesh.aabb.min_corner);
         
@@ -238,7 +268,6 @@ float comprimentoMaximo(const glm::vec3& tamanho) {
     return std::max({tamanho.x, tamanho.y, tamanho.z});
 }
 
-
 int main(int argc, char** argv) {
     if (argc < 2) {
         std::cerr << "Uso: " << argv[0] << " <modelo.obj>" << std::endl;
@@ -266,10 +295,14 @@ int main(int argc, char** argv) {
     }
 
     window = glfwCreateWindow(800, 600, "Modelo", nullptr, nullptr);
+
     if (!window) {
         glfwTerminate();
         return -1;
     }
+
+    glfwSetCursorPosCallback(window, mouse_callback);
+    glfwSetMouseButtonCallback(window, mouse_button_callback);
 
     glfwMakeContextCurrent(window);
     glewExperimental = GL_TRUE;
@@ -370,13 +403,19 @@ int main(int argc, char** argv) {
     float escala1 = 1.0f / comprimentoMaximo(tamanho1);
     float escala2 = 1.0f / comprimentoMaximo(tamanho2);
 
-    //float modelAngle = 0.0f; 
+    float modelAngle = 0.0f; 
 
     while (!glfwWindowShouldClose(window)) {
         glClearColor(0.2f, 0.2f, 0.5f, 0.0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glm::mat4 viewMat = glm::lookAt(glm::vec3(0.0f, 0.0f, 10.0f), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+        //glm::mat4 viewMat = glm::lookAt(glm::vec3(0.0f, 0.0f, 10.0f), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+
+        glm::mat4 viewMat = glm::mat4(1.0f);
+        viewMat = glm::translate(viewMat, glm::vec3(0.0f, 0.0f, -10.0f)); // Move para trás
+        viewMat = glm::rotate(viewMat, glm::radians(pitch), glm::vec3(1.0f, 0.0f, 0.0f));
+        viewMat = glm::rotate(viewMat, glm::radians(yaw),   glm::vec3(0.0f, 1.0f, 0.0f));
+
 
         std::vector<std::shared_ptr<std::vector<glm::vec3>>> transformedCoords;
         std::vector<AABBTree> trees;
@@ -388,7 +427,7 @@ int main(int argc, char** argv) {
 
             glm::mat4 To = glm::translate(glm::mat4(1.0f), -obj.vertices[0]);
             glm::mat4 S  = glm::scale(glm::mat4(1.0f), glm::vec3(escalaAtual));
-           // glm::mat4 R = glm::rotate(glm::mat4(1.f), glm::radians(modelAngle), glm::vec3(0.f,1.f,0.f));
+            //glm::mat4 R = glm::rotate(glm::mat4(1.f), glm::radians(modelAngle), glm::vec3(0.f,1.f,0.f));
             glm::mat4 Tb = glm::translate(glm::mat4(1.0f), obj.vertices[0]);
 
             glm::mat4 translacaoLateral = glm::mat4(1.0f);
@@ -406,7 +445,7 @@ int main(int argc, char** argv) {
             glBindVertexArray(obj.vao);
             glDrawElements(GL_TRIANGLES, obj.triangles.size() * 3, GL_UNSIGNED_INT, 0);
 
-            // // Atualiza vértices transformados
+            // Atualiza vértices transformados
             auto transformed = std::make_shared<std::vector<glm::vec3>>();
             transformed->reserve(obj.vertices.size());
             for (const auto& v : obj.vertices) {
@@ -420,7 +459,6 @@ int main(int argc, char** argv) {
 
             transformedCoords.push_back(transformed);
             trees.push_back(std::move(tree));
-
         }
 
         if (trees.size() >= 2) {
@@ -430,7 +468,7 @@ int main(int argc, char** argv) {
         glfwSwapBuffers(window);
         glfwPollEvents();
 
-        //modelAngle = modelAngle <= 360 ? modelAngle + 0.5f : 0;
+        modelAngle = modelAngle <= 360 ? modelAngle + 0.5f : 0;
     }
 
     glfwTerminate();
