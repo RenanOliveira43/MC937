@@ -1,209 +1,215 @@
-#include <iostream>
 #include <vector>
 #include <array>
-#include <algorithm>
 #include <memory>
+#include <algorithm>
+#include <limits>
 #include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
 
-// Axis-Aligned Bounding Box (AABB) structure
-struct AABB
-{
-    glm::vec3 min_corner{}; // Minimum corner of the bounding box
-    glm::vec3 max_corner{}; // Maximum corner of the bounding box
+struct AABB {
+    glm::vec3 min_corner;
+    glm::vec3 max_corner;
+    
+    AABB() : min_corner(std::numeric_limits<float>::max()), max_corner(std::numeric_limits<float>::lowest()) {}
+             
+    AABB(const glm::vec3& min, const glm::vec3& max) : 
+        min_corner(min), max_corner(max) {}
+    
+    bool isEmpty() const {
+        return min_corner.x > max_corner.x || min_corner.y > max_corner.y || min_corner.z > max_corner.z;
+    }
+    
+    AABB transform(const glm::mat4& matrix) const {
+        if (isEmpty()) return *this;
+        
+        glm::vec3 corners[8] = {
+            {min_corner.x, min_corner.y, min_corner.z},
+            {min_corner.x, min_corner.y, max_corner.z},
+            {min_corner.x, max_corner.y, min_corner.z},
+            {min_corner.x, max_corner.y, max_corner.z},
+            {max_corner.x, min_corner.y, min_corner.z},
+            {max_corner.x, min_corner.y, max_corner.z},
+            {max_corner.x, max_corner.y, min_corner.z},
+            {max_corner.x, max_corner.y, max_corner.z}
+        };
 
-    AABB() {}
+        glm::vec3 new_min(std::numeric_limits<float>::max());
+        glm::vec3 new_max(std::numeric_limits<float>::lowest());
 
-    // Constructor that initializes the bounding box with given min and max
-    AABB(const glm::vec3& min, const glm::vec3& max):
-        min_corner{min},
-        max_corner{max}
-    {}
+        for (const auto& corner : corners) {
+            glm::vec3 transformed = glm::vec3(matrix * glm::vec4(corner, 1.0f));
+            new_min = glm::min(new_min, transformed);
+            new_max = glm::max(new_max, transformed);
+        }
 
-    // Returns the axis (0=x, 1=y, 2=z) where the box is largest
-    unsigned short getLargestAxis() const
-    {
+        return AABB(new_min, new_max);
+    }
+    
+    bool intersects(const AABB& other) const {
+        return (min_corner.x <= other.max_corner.x && max_corner.x >= other.min_corner.x) &&
+               (min_corner.y <= other.max_corner.y && max_corner.y >= other.min_corner.y) &&
+               (min_corner.z <= other.max_corner.z && max_corner.z >= other.min_corner.z);
+    }
+    
+    unsigned short getLargestAxis() const {
         glm::vec3 size = max_corner - min_corner;
 
-        if (size.x >= size.y && size.x >= size.z)
+        if (size.x >= size.y && size.x >= size.z) {
             return 0;
-        else if (size.y >= size.z)
+        }
+        else if (size.y >= size.z) {
             return 1;
-        else
+        }
+        else {
             return 2;
-    }
-
-    // Splits the AABB into two along a specified axis
-    std::pair<AABB, AABB> split(unsigned axis) const
-    {
-        float mid_point = (min_corner[axis] + max_corner[axis]) * 0.5f;
-
-        glm::vec3 first_max{max_corner};
-        first_max[axis] = mid_point;
-
-        glm::vec3 second_min{min_corner};
-        second_min[axis] = mid_point;
-
-        return {
-            AABB(min_corner, first_max),
-            AABB(second_min, max_corner)
-        };
-    }
-};
-
-// Structure representing a 3D mesh
-struct Mesh
-{
-    using coordinate_t = std::vector<glm::vec3>; // List of vertex positions
-    using triangles_t = std::vector<std::array<unsigned, 3>>; // List of triangle indices
-
-    AABB aabb; // Bounding box for the mesh
-    std::shared_ptr<const coordinate_t> coordinates; // Shared pointer to vertex positions
-    triangles_t triangles; // Triangles made of 3 vertex indices
-
-    // Constructor that takes coordinates (shared_ptr) and triangle data
-    Mesh(std::shared_ptr<const coordinate_t> coords,
-         const triangles_t& triangles):
-        coordinates{std::move(coords)},
-        triangles{triangles}
-    {
-        updateAABB(); // Automatically compute the AABB
-    }
-
-    void updateAABB(); // Updates the mesh's bounding box
-
-    // Sorts triangles based on their centroid's position along a given axis
-    void sortTrianglesByAxis(unsigned axis)
-    {
-        auto comparator = [&](const std::array<unsigned, 3>& a, const std::array<unsigned, 3>& b)
-        {
-            glm::vec3 centroid_a = (coordinates->at(a[0]) + coordinates->at(a[1]) + coordinates->at(a[2])) / 3.0f;
-            glm::vec3 centroid_b = (coordinates->at(b[0]) + coordinates->at(b[1]) + coordinates->at(b[2])) / 3.0f;
-            return centroid_a[axis] < centroid_b[axis];
-        };
-
-        std::sort(triangles.begin(), triangles.end(), comparator);
-    }
-
-    // Splits the mesh's triangle list into two halves based on spatial median of centroids
-    std::pair<Mesh, Mesh> splitMesh();
-};
-
-// Computes the AABB that encloses all the mesh's vertices used by its triangles
-void Mesh::updateAABB()
-{
-    if(triangles.empty()) return;
-
-    glm::vec3 min = coordinates->at(triangles[0][0]);
-    glm::vec3 max = min;
-
-    for (const auto& tri : triangles)
-    {
-        for (auto idx : tri)
-        {
-            const glm::vec3& coord = coordinates->at(idx);
-            min = glm::min(min, coord);
-            max = glm::max(max, coord);
         }
     }
+};
 
-    aabb = {min, max};
-}
-
-// Splits the mesh into two submeshes based on the spatial median of triangle centroids along the largest axis
-std::pair<Mesh, Mesh> Mesh::splitMesh()
-{
-    if(triangles.empty()) return {{coordinates, {}}, {coordinates, {}}};
-
-    unsigned axis = aabb.getLargestAxis();
-
-    // Compute centroid positions for all triangles
-    std::vector<float> centroids;
-    centroids.reserve(triangles.size());
-    for(const auto& tri : triangles)
-    {
-        glm::vec3 centroid = (coordinates->at(tri[0]) + coordinates->at(tri[1]) + coordinates->at(tri[2])) / 3.0f;
-        centroids.push_back(centroid[axis]);
+struct Mesh {
+    using coordinate_t = std::vector<glm::vec3>;
+    using triangles_t = std::vector<std::array<unsigned, 3>>;
+    
+    AABB aabb;
+    std::shared_ptr<const coordinate_t> coordinates;
+    triangles_t triangles;
+    
+    Mesh(std::shared_ptr<const coordinate_t> coords, const triangles_t& tris) : 
+        coordinates(std::move(coords)), triangles(tris) {
+        updateAABB();
     }
+    
+    void updateAABB() {
+        if (triangles.empty()) {
+            aabb = AABB();
+            return;
+        }
 
-    // Compute median value (approximate)
-    std::vector<float> sorted_centroids = centroids;
-    size_t mid_index = sorted_centroids.size() / 2;
-    std::nth_element(sorted_centroids.begin(), sorted_centroids.begin() + mid_index, sorted_centroids.end());
-    float median = sorted_centroids[mid_index];
+        glm::vec3 min(std::numeric_limits<float>::max());
+        glm::vec3 max(std::numeric_limits<float>::lowest());
 
-    // Split triangles into two groups based on median
-    triangles_t first_t, second_t;
-    for(size_t i=0; i<triangles.size(); ++i)
-    {
-        glm::vec3 centroid = (coordinates->at(triangles[i][0]) + coordinates->at(triangles[i][1]) + coordinates->at(triangles[i][2])) / 3.0f;
-        if(centroid[axis] <= median)
-            first_t.push_back(triangles[i]);
-        else
-            second_t.push_back(triangles[i]);
+        for (const auto& tri : triangles) {
+            for (auto idx : tri) {
+                const glm::vec3& v = (*coordinates)[idx];
+                min = glm::min(min, v);
+                max = glm::max(max, v);
+            }
+        }
+
+        aabb = AABB(min, max);
     }
-
-    // Handle case where one side is empty (split by count instead)
-    if(first_t.empty() || second_t.empty())
-    {
-        size_t half = triangles.size() / 2;
-        first_t.assign(triangles.begin(), triangles.begin() + half);
-        second_t.assign(triangles.begin() + half, triangles.end());
+    
+    void sortTrianglesByAxis(unsigned axis) {
+        auto comparator = [&](const std::array<unsigned, 3>& a, const std::array<unsigned, 3>& b) {
+            glm::vec3 centroid_a = ((*coordinates)[a[0]] + (*coordinates)[a[1]] + (*coordinates)[a[2]]) / 3.0f;
+            glm::vec3 centroid_b = ((*coordinates)[b[0]] + (*coordinates)[b[1]] + (*coordinates)[b[2]]) / 3.0f;
+            return centroid_a[axis] < centroid_b[axis];
+        };
+        std::sort(triangles.begin(), triangles.end(), comparator);
     }
+    
+    std::pair<Mesh, Mesh> splitMesh() const {
+        if (triangles.empty()) 
+            return {Mesh(coordinates, {}), Mesh(coordinates, {})};
 
-    return {{coordinates, first_t}, {coordinates, second_t}};
-}
+        unsigned axis = aabb.getLargestAxis();
+        std::vector<float> centroids;
+        centroids.reserve(triangles.size());
+        
+        for (const auto& tri : triangles) {
+            glm::vec3 centroid = ((*coordinates)[tri[0]] + (*coordinates)[tri[1]] + (*coordinates)[tri[2]]) / 3.0f;
+            centroids.push_back(centroid[axis]);
+        }
 
-// Node in the AABB tree
-struct AABBNode
-{
+        size_t mid = centroids.size() / 2;
+        std::nth_element(centroids.begin(), centroids.begin() + mid, centroids.end());
+        float median = centroids[mid];
+
+        triangles_t first, second;
+        for (const auto& tri : triangles) {
+            glm::vec3 centroid = ((*coordinates)[tri[0]] + (*coordinates)[tri[1]] + (*coordinates)[tri[2]]) / 3.0f;
+            (centroid[axis] <= median ? first : second).push_back(tri);
+        }
+
+        if (first.empty() || second.empty()) {
+            size_t half = triangles.size() / 2;
+            first.assign(triangles.begin(), triangles.begin() + half);
+            second.assign(triangles.begin() + half, triangles.end());
+        }
+
+        return {Mesh(coordinates, first), Mesh(coordinates, second)};
+    }
+};
+
+struct AABBNode {
     Mesh mesh;
-    bool leaf{false}; // True if this node is a leaf (only one triangle)
-
-    std::unique_ptr<AABBNode> left_child{nullptr};
-    std::unique_ptr<AABBNode> right_child{nullptr};
-
-    AABBNode(const Mesh& mesh):mesh{mesh}{}
-
+    AABB original_aabb;
+    AABB transformed_aabb;
+    bool leaf{false};
+    std::unique_ptr<AABBNode> left_child;
+    std::unique_ptr<AABBNode> right_child;
+    
+    AABBNode(const Mesh& m) : mesh(m), original_aabb(m.aabb), transformed_aabb(m.aabb) {}
+    
     bool isLeaf() const { return leaf; }
     void makeLeaf() { leaf = true; }
 };
 
-// AABB Tree structure
-struct AABBTree
-{
-    std::unique_ptr<AABBNode> root{nullptr}; // Root node of the tree
-
+class AABBTree {
+    std::unique_ptr<AABBNode> root;
+    glm::mat4 last_transform{1.0f};
+    bool force_update{true};
+    unsigned max_depth{16};
+    unsigned min_triangles{4};
+    
+public:
     AABBTree(const Mesh& mesh) {
         root = std::make_unique<AABBNode>(mesh);
     }
-
-    void build() { build(root, 0); std::cout << "[ OK ] Build AABB tree\n"; }
-
-private:
-    void build(std::unique_ptr<AABBNode>& node, unsigned depth);
-};
-
-// Recursively builds the AABB tree with max depth 16
-void AABBTree::build(std::unique_ptr<AABBNode>& node, unsigned depth)
-{
-    if(node == nullptr) return;
-    if(node->isLeaf()) return;
-
-    if(depth > 16 || node->mesh.triangles.size() <= 1)
-    {
-        node->makeLeaf();
-        return;
+    
+    void build() {
+        build(root, 0);
+    }
+    
+    void updateTransform(const glm::mat4& transform) {
+        if (transform == last_transform && !force_update) return;
+        last_transform = transform;
+        force_update = false;
+        updateNodeTransform(root.get(), transform);
+    }
+    
+    void forceUpdate() { 
+        force_update = true; 
     }
 
-    unsigned short largest_axis = node->mesh.aabb.getLargestAxis();
+    AABBNode* getRoot() const { return root.get(); }
 
-    node->mesh.sortTrianglesByAxis(largest_axis);
-    auto sub_meshes = node->mesh.splitMesh();
+        
+private:
+    void build(std::unique_ptr<AABBNode>& node, unsigned depth) {
+        if (!node || node->isLeaf()) return;
 
-    node->left_child = std::make_unique<AABBNode>(sub_meshes.first);
-    node->right_child = std::make_unique<AABBNode>(sub_meshes.second);
+        if (depth > max_depth || node->mesh.triangles.size() <= min_triangles) {
+            node->makeLeaf();
+            return;
+        }
 
-    build(node->left_child, depth + 1);
-    build(node->right_child, depth + 1);
-}
+        auto sub_meshes = node->mesh.splitMesh();
+        node->left_child = std::make_unique<AABBNode>(sub_meshes.first);
+        node->right_child = std::make_unique<AABBNode>(sub_meshes.second);
 
+        build(node->left_child, depth + 1);
+        build(node->right_child, depth + 1);
+    }
+    
+    void updateNodeTransform(AABBNode* node, const glm::mat4& transform) {
+        if (!node) return;
+        
+        node->transformed_aabb = node->original_aabb.transform(transform);
+        
+        if (!node->isLeaf()) {
+            updateNodeTransform(node->left_child.get(), transform);
+            updateNodeTransform(node->right_child.get(), transform);
+        }
+    }
+};
